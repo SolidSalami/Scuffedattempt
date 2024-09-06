@@ -28,7 +28,6 @@ format:
   environment: production
   script:
     -  cd helm
-    -  helm repo update
     -  helm dependency update
     -  helm upgrade --install ingame-api-backend ./ --set image.tag=$CI_COMMIT_SHA --set image.repository=$CI_REGISTRY_IMAGE --create-namespace --namespace noway4u
 
