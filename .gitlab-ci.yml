@@ -17,7 +17,6 @@ podman-build-backend:
     name: quay.io/podman/stable
 
   script:
-    - cd backend 
     - podman build -t "$CI_REGISTRY_IMAGE/ingame-api-backend:$CI_COMMIT_SHA" -t "$CI_REGISTRY_IMAGE/ingame-api-backend:latest"  .
     - podman push "$CI_REGISTRY_IMAGE/ingame-api-backend:$CI_COMMIT_SHA"
     - podman push "$CI_REGISTRY_IMAGE/ingame-api-backend:latest"
