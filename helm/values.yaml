@@ -1,0 +1,6 @@
+
+service:
+  url: 'https://ingame-api.noway.gg'
+  externalPort: 5000
+
+

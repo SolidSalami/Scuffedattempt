@@ -64,7 +64,7 @@ export class LivegameService {
           return of(cached);
         }
 
-        return this.getLivegameBySummoner(region.toLowerCase(), summonerName).pipe(
+        return this.getLivegameBySummoner(region, summonerName).pipe(
           switchMap(livegame => {
             if (!livegame) {
               return throwError(() => new GameNotFoundError(summonerName));

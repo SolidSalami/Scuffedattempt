@@ -1,0 +1,12 @@
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ingame-api.noway.gg
+spec:
+  dnsNames:
+  - ingame-api.noway.gg
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt-prod
+  secretName: ingame-api.noway.gg

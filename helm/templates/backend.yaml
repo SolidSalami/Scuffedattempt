@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingame-api-backend
+  labels:
+    app: ingame-api-backend
+    date: "{{ now | unixEpoch }}"
+spec:
+  selector:
+    matchLabels:
+      app: ingame-api-backend
+  template:
+    metadata:
+      labels:
+        app: ingame-api-backend
+        date: "{{ now | unixEpoch }}"
+    spec:
+      containers:
+      - name: noway-website-backend
+        # we use the backend image here
+        image: "{{ .Values.image.repository }}/ingame-api-backend:latest"
+        imagePullPolicy: Always 
+        envFrom:
+        - secretRef:
+            name: ingame-api-backend-secret  
+        ports:
+        - containerPort: 3000 
+      imagePullSecrets:
+        - name: gitlab-registry
