@@ -20,9 +20,6 @@ spec:
         # we use the backend image here
         image: "{{ .Values.image.repository }}/ingame-api-backend:latest"
         imagePullPolicy: Always 
-        envFrom:
-        - secretRef:
-            name: ingame-api-backend-secret  
         ports:
         - containerPort: 3000 
       imagePullSecrets:
