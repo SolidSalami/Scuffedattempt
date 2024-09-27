@@ -6,6 +6,7 @@ import { DeepLolLiveGame } from "./models/deeplol_game";
 import { calculateAverageRank } from "./average-rank-calculator";
 import { Cache, CACHE_MANAGER } from "@nestjs/cache-manager";
 import { RiotVersionService } from "./riot-version.service";
+import { DeeplolStreamerPro } from "./models/deeplol_streamer_pro";
 
 export interface LivegameResponse {
   averageRank?: {
@@ -52,8 +53,85 @@ export class LivegameService {
     private readonly riotVersion: RiotVersionService
   ) { }
 
+  getLivegameForStreamer(name: string, streamerOrPro: 'streamer' | 'pro') {
+    return this.getAccountsForStreamer(name, streamerOrPro).pipe(
+      switchMap(streamer => {
+        if (!streamer || streamer?.status === '') {
+          return of(null);
+        }
+        const active = streamer.account_list.find(it => it.live === 1);
 
-  getLivegameInfoBySummoner(region: string, summonerName: string): Observable<LivegameResponse> {
+        return this.getLivegameBySummonerId(active.platform_id, active.puu_id, true);
+      }),
+
+      switchMap(livegame => {
+        if (!livegame) {
+          return throwError(() => new GameNotFoundError(name));
+        }
+        const summoners = this.getSummonerInfosByIds(livegame.platformId, livegame.participants.map(player => player.summonerId), true).pipe(
+          map(summoners => {
+            console.log(summoners)
+            return summoners.filter(it => !!it)
+
+          })
+        )
+        return combineLatest([of(livegame), summoners, from(this.riotVersion.getLatestChampions())])
+      }),
+      map(([livegame, summoners, champs]) => {
+        const knownPlayers = summoners
+          .filter(it => !!it.summoner.summoner_basic_info_dict.pro_streamer_info_dict.status)
+          .map(
+            it => {
+              const participant = livegame.participants.find(p => p.summonerId === it.summoner.summoner_basic_info_dict.summoner_id)
+              if (!participant) {
+                return null;
+              }
+              return {
+                name: it.summoner.summoner_basic_info_dict.pro_streamer_info_dict.name,
+                combinedName: `${it.summoner.summoner_basic_info_dict.pro_streamer_info_dict.pro_team_al ?? ''} ${it.summoner.summoner_basic_info_dict.pro_streamer_info_dict.name}`.trimStart(),
+                championName: champs.get(participant.championId)?.name + ''
+              }
+
+            }
+          ).filter(it => !!it)
+        const averageRank = calculateAverageRank(summoners);
+        return {
+          knownPlayers: knownPlayers.filter(it => !!it),
+          averageRank,
+        }
+      }),
+      tap(response => {
+        this.cacheManager.set(`${name.toLowerCase()}-game`, response, 60 * 5 * 1000)
+      })
+    )
+
+  }
+
+  getAccountsForStreamer(name: string, streamerOrPro: 'streamer' | 'pro') {
+    const url = `https://b2c-api-cdn.deeplol.gg/summoner/strm_pro_info?name=${name}&status=${streamerOrPro}`
+    const cacheKey = `${name}-${streamerOrPro}-accounts`
+    return from(this.cacheManager.get<DeeplolStreamerPro>(cacheKey)).pipe(
+      switchMap(cached => {
+        if (cached) {
+          return of(cached);
+        }
+
+        return this.http.get<DeeplolStreamerPro>(url).pipe(
+          map(response => response.data),
+          tap(res => this.cacheManager.set(cacheKey, res, 60 * 3 * 1000)),
+          catchError(error => {
+            console.error(error);
+            if (error.response.status === 404) {
+              return of(null);
+            }
+            return throwError(error);
+          }))
+      })
+    )
+  }
+
+
+  getLivegameInfoBySummoner(region: string, summonerName: string,): Observable<LivegameResponse> {
 
     // Look into the cache first
     return from(
@@ -79,7 +157,6 @@ export class LivegameService {
             return combineLatest([of(livegame), summoners, from(this.riotVersion.getLatestChampions())])
           }),
           map(([livegame, summoners, champs]) => {
-            console.log(champs)
             const knownPlayers = summoners
               .filter(it => !!it.summoner.summoner_basic_info_dict.pro_streamer_info_dict.status)
               .map(
@@ -123,16 +200,16 @@ export class LivegameService {
     )
   }
 
-  getSummonerInfosByIds(region: string, summonerIds: string[]): Observable<DeepLolSummonerCachedResponse[]> {
+  getSummonerInfosByIds(region: string, summonerIds: string[], isPlatform = false): Observable<DeepLolSummonerCachedResponse[]> {
     return from(summonerIds).pipe(
-      mergeMap(summonerId => this.getSummonerInfoById(region, summonerId), 10),
+      mergeMap(summonerId => this.getSummonerInfoById(region, summonerId, isPlatform), 10),
       toArray()
     )
   }
 
-  getSummonerInfoById(region: string, summonerId: string): Observable<DeepLolSummonerCachedResponse> {
+  getSummonerInfoById(region: string, summonerId: string, isPlatform = false): Observable<DeepLolSummonerCachedResponse> {
     const cacheKey = `${region.toLowerCase()}-${summonerId.toLowerCase()}-cached`
-    const platformId = RegionToPlatformId[region] ?? 'EUW1';
+    const platformId = isPlatform ? region : RegionToPlatformId[region] ?? 'EUW1';
     const url = `https://b2c-api-cdn.deeplol.gg/ingame/summoner-cached?summoner_id=${summonerId}&platform_id=${platformId}`
     return from(
       this.cacheManager.get<DeepLolSummonerCachedResponse>(cacheKey)
@@ -155,9 +232,9 @@ export class LivegameService {
     )
   }
 
-  getLivegameBySummonerId(region: string, summonerId: string): Observable<DeepLolLiveGame> {
+  getLivegameBySummonerId(region: string, summonerId: string, isPlatform = false): Observable<DeepLolLiveGame> {
     const cacheKey = `${region.toLowerCase()}-${summonerId.toLowerCase()}-live`
-    const platformId = RegionToPlatformId[region] ?? 'EUW1';
+    const platformId = isPlatform ? region : RegionToPlatformId[region] ?? 'EUW1';
     const url = `https://ingame-basic-test.deeplol-gg.workers.dev/`
     const formData = new FormData();
     formData.append('platform_id', platformId);
@@ -223,4 +300,6 @@ export class LivegameService {
     )
 
   }
+
+
 }

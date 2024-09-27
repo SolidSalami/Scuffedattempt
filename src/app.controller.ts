@@ -55,10 +55,23 @@ export class AppController {
   @Get('by-streamer/:streamer')
   getLivegameByStreamer(
     @Param('streamer') streamerName: string,
+    @Query('streamerOrPro') streamerOrPro: 'pro' | 'streamer' = 'streamer',
     @Query('type') type: ResponseType,
     @Query('with_self') filterOwn: boolean = false,
+    @Res() res: Response
   ) {
+    this.livegameService.getLivegameForStreamer(streamerName, streamerOrPro).pipe(
+      catchError(err => { return of({ error: err }) }),
+      map(it => {
+        return livegameToResponse(it, type)
+      })).subscribe(it => {
+        res.send(it)
+      })
 
+    if (type === ResponseType.JSON) {
+    } else if (type === ResponseType.NIGHTBOT) {
+      // TODO: Steal code from somewhere 
+    }
 
   }
 
