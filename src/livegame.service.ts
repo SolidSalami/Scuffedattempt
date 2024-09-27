@@ -101,6 +101,7 @@ export class LivegameService {
         }
       }),
       tap(response => {
+        console.log(response)
         this.cacheManager.set(`${name.toLowerCase()}-game`, response, 60 * 5 * 1000)
       })
     )

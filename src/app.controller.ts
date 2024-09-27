@@ -56,13 +56,14 @@ export class AppController {
   getLivegameByStreamer(
     @Param('streamer') streamerName: string,
     @Query('streamerOrPro') streamerOrPro: 'pro' | 'streamer' = 'streamer',
-    @Query('type') type: ResponseType,
+    @Query('type') type: ResponseType = ResponseType.JSON,
     @Query('with_self') filterOwn: boolean = false,
     @Res() res: Response
   ) {
     this.livegameService.getLivegameForStreamer(streamerName, streamerOrPro).pipe(
       catchError(err => { return of({ error: err }) }),
       map(it => {
+
         return livegameToResponse(it, type)
       })).subscribe(it => {
         res.send(it)
@@ -89,7 +90,6 @@ type ErrorContainer = { error: any }
 
 
 const livegameToResponse = (data: LivegameResponse | ErrorContainer, responseType: ResponseType) => {
-  console.log(data)
   if (responseType === ResponseType.JSON) {
     return data;
   }
