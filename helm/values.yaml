@@ -1,6 +1,6 @@
 
 service:
-  url: 'https://ingame-api.noway.gg'
+  url: 'https://ingame-api.salami.gg'
   externalPort: 5000
 
 
