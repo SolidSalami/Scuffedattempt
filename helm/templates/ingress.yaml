@@ -6,10 +6,10 @@ metadata:
 spec:
   tls:
   - hosts:
-    - ingame-api.noway.gg
-    secretName: ingame-api.noway.gg
+    - ingame-api.salami.gg
+    secretName: ingame-api.salami.gg
   rules:
-  - host: "ingame-api.noway.gg"
+  - host: "ingame-api.salami.gg"
     http:
       paths:
       - path: /
