@@ -1,12 +1,12 @@
-
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: ingame-api.salami.gg
 spec:
   dnsNames:
-  - ingame-api.salami.gg
+  - ingame-api.salami.gg  # This is the alias you want to set up
   issuerRef:
     kind: ClusterIssuer
     name: letsencrypt-prod
   secretName: ingame-api.salami.gg
+
