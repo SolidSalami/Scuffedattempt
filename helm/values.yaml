@@ -1,6 +1,3 @@
-
 service:
-  url: 'https://ingame-api.salami.gg'
-  externalPort: 5000
-
-
+  url: 'https://ingame-api.salami.gg'  # URL should match the alias you're using
+  externalPort: 3000  # Port should match the port your backend service is listening on (3000 in your case)
