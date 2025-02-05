@@ -9,4 +9,4 @@ spec:
   issuerRef:
     kind: ClusterIssuer
     name: letsencrypt-prod
-  secretName: ingame-api.noway.gg
+  secretName: ingame-api.salami.gg
